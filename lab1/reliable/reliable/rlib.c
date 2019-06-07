@@ -701,6 +701,7 @@ get_address (struct sockaddr_storage *ss, int local,
 
   if (family == AF_UNIX) {
     size_t len = strlen (name);
+    fprintf(stderr, "name len = %d\n", len);
     struct sockaddr_un *sun = (struct sockaddr_un *) ss;
     if (offsetof (struct sockaddr_un, sun_path[len])
 	>= sizeof (struct sockaddr_storage)) {
@@ -727,6 +728,7 @@ get_address (struct sockaddr_storage *ss, int local,
     host = NULL;
     port = "0";
   }
+  fprintf(stderr, "host=%s, port=%s\n", host, port);
 
   memset (&hints, 0, sizeof (hints));
   hints.ai_family = family;
@@ -735,6 +737,7 @@ get_address (struct sockaddr_storage *ss, int local,
   if (local)
     hints.ai_flags = AI_PASSIVE; /* passive means for local address */
   err = getaddrinfo (host, port, &hints, &ai);
+  fprintf(stderr, "getaddrinfo err = %d\n", err);
   if (err) {
     if (local)
       fprintf (stderr, "local port %s: %s\n", port, gai_strerror (err));
@@ -754,7 +757,9 @@ int
 listen_on (int dgram, struct sockaddr_storage *ss)
 {
   int type = dgram ? SOCK_DGRAM : SOCK_STREAM;
+  fprintf(stderr, "ss->ss_family=%d, type=%d\n", ss->ss_family, type);
   int s = socket (ss->ss_family, type, 0);
+  fprintf(stderr, "file descriptor for the new socket s=%d\n", s);
   int n = 1;
   socklen_t len;
   int err;
@@ -766,11 +771,13 @@ listen_on (int dgram, struct sockaddr_storage *ss)
   }
   if (!dgram)
     setsockopt (s, SOL_SOCKET, SO_REUSEADDR, (char *) &n, sizeof (n));
+
   if (bind (s, (const struct sockaddr *) ss, addrsize (ss)) < 0) {
     perror ("bind");
     close (s);
     return -1;
   }
+
   if (!dgram && listen (s, 5) < 0) {
     perror ("listen");
     close (s);
@@ -988,6 +995,7 @@ main (int argc, char **argv)
   c.timer = c.timeout / 5;
   local = argv[optind];
   remote = argv[optind+1];
+  fprintf(stderr, "local = %s, remote = %s\n", local, remote);
 
   if (opt_server) {
     fprintf(stderr, "opt_server = 1\n");
@@ -1025,6 +1033,7 @@ main (int argc, char **argv)
       perror ("connect");
       exit (1);
     }
+    fprintf(stderr, "i am here\n");
     cn->server = 0;
     cn->peer = sr;
     make_async (cn->rfd);
